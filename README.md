@@ -3,7 +3,7 @@
 - This Hackathon mainly involves a lot of preprocessing. Handling missing values is one of the major task in this Hackathon.
 
 ## Files:
-- [Predict house prices in Bangalore](https://github.com/Abhishekmamidi123/Predict-house-prices-in-Bangalore/blob/master/predict_house_prices.ipynb)
+- [Predict house prices in Bangalore](https://github.com/Abhishekmamidi123/Predict-house-prices-in-Bangalore/blob/master/predict_house_prices.ipynb) - Jupyter notebook.
 
 ## Language:
 - Python
