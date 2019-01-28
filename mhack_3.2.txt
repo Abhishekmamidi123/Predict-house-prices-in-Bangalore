@@ -1,0 +1,1321 @@
+
+# coding: utf-8
+
+# In[1]:
+
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from collections import Counter
+
+
+# In[2]:
+
+
+import scipy.stats as st
+import statsmodels.api as sm
+
+
+# In[3]:
+
+
+get_ipython().run_line_magic('matplotlib', 'inline')
+
+
+# In[4]:
+
+
+import warnings
+warnings.filterwarnings('ignore')
+
+
+# In[5]:
+
+
+plt.rcParams['figure.figsize']= (15, 12)
+plt.style.use('ggplot')
+sns.set(style= 'darkgrid', color_codes= True)
+
+
+# In[6]:
+
+
+train= pd.read_csv('Predicting-House-Prices-In-Bengaluru-Train-Data.csv')
+test= pd.read_csv('Predicting-House-Prices-In-Bengaluru-Test-Data.csv')
+samp= pd.read_excel('House_-Sample_Submission.xlsx')
+
+
+# In[7]:
+
+
+train.head()
+
+
+# In[8]:
+
+
+train.describe()
+
+
+# In[9]:
+
+
+test.head()
+
+
+# In[10]:
+
+
+train.nunique()
+
+
+# In[11]:
+
+
+train.isnull().sum()
+
+
+# In[12]:
+
+
+train.shape
+
+
+# In[13]:
+
+
+import re
+
+
+# In[14]:
+
+
+def clean_totalsqft(total_sqft):
+    total_sqft= total_sqft.str.split('-')
+    for i in range(len(total_sqft)):
+        #if total_sqft[i][0].isdigit()==False:
+            #total_sqft[i][0]= total_sqft[i][0].str.split('')
+        try:
+            if len(total_sqft.iloc[i])>1:
+                total_sqft.iloc[i]= str(float(total_sqft.iloc[i][0])+float(total_sqft.iloc[i][1]))/2
+                total_sqft.iloc[1]= total_sqft.iloc[i][0]
+            #if len(total_sqft.iloc[i]==1):
+            #    total_sqft.iloc[i]= total_sqft.iloc[i].astype(float)
+        
+        except:
+            pass
+
+    return total_sqft
+
+
+# In[15]:
+
+
+sqft= clean_totalsqft(train['total_sqft'])
+
+
+# In[16]:
+
+
+sqft= [sq[0] for sq in sqft]
+
+
+# In[17]:
+
+
+train['total_sqft']= sqft
+
+
+# In[18]:
+
+
+def clean_total_sqft(total_sqft):
+    
+    for sq in range(len(total_sqft)):
+        if total_sqft[sq].isdigit()== False:
+            #print(total_sqft[sq])
+            #total_sqft[sq]= total_sqft[sq].split(' ')
+                #print(total_sqft[sq])
+            #total_sqft[sq]= ''.join(total_sqft[sq])
+                #print(total_sqft[sq])
+            total_sqft[sq]= re.split(r'([A-Z])', total_sqft[sq], 1, flags= re.I)
+                #print(total_sqft[sq])
+                #try:
+            if len(total_sqft[sq])>1:
+                if total_sqft[sq][2]== 'q. Meter':
+                    print(total_sqft[sq])
+                    num= total_sqft[sq][0]
+                    print(num)
+                    total_sqft[sq]= str(float(num)*10.7639)
+                    print(total_sqft[sq])
+                elif total_sqft[sq][2]== 'q. Yards':
+                    print(total_sqft[sq])
+                    num= total_sqft[sq][0]
+                    print(num)
+                    total_sqft[sq]= str(float(num)*9)
+                    print(total_sqft[sq])
+                elif total_sqft[sq][2]== 'erch':
+                    print(total_sqft[sq])
+                    num= total_sqft[sq][0]
+                    print(num)
+                    total_sqft[sq]= str(float(num)*272.25)
+                    print(total_sqft[sq])
+                elif total_sqft[sq][2]== 'cres':
+                    print(total_sqft[sq])
+                    num= total_sqft[sq][0]
+                    print(num)
+                    total_sqft[sq]= str(float(num)*43560)
+                    print(total_sqft[sq])
+                elif total_sqft[sq][2]== 'untha':
+                    print(total_sqft[sq])
+                    num= total_sqft[sq][0]
+                    print(num)
+                    total_sqft[sq]= str(float(num)*1089.087)
+                    print(total_sqft[sq])
+                elif total_sqft[sq][2]== 'ents':
+                    print(total_sqft[sq])
+                    num= total_sqft[sq][0]
+                    print(num)
+                    total_sqft[sq]= str(float(num)*435.6)
+                    print(total_sqft[sq])
+                elif total_sqft[sq][2]== 'rounds':
+                    print(total_sqft[sq])
+                    num= total_sqft[sq][0]
+                    print(num)
+                    total_sqft[sq]= str(float(num)*2400)
+                    print(total_sqft[sq])
+                #except:
+                #    pass
+    return total_sqft
+
+
+# In[19]:
+
+
+sqft= clean_total_sqft(train['total_sqft'])
+
+
+# In[20]:
+
+
+for i in range(len(sqft)):
+    if type(sqft[i])== list:
+        sqft[i]= sqft[i][0]
+
+
+# In[21]:
+
+
+train['total_sqft']= sqft
+
+
+# In[22]:
+
+
+train['total_sqft']= train['total_sqft'].astype(float)
+
+
+# In[23]:
+
+
+train['total_sqft'].describe()
+
+
+# In[24]:
+
+
+#simply do with test data
+sqft_test= clean_totalsqft(test['total_sqft'])
+
+
+# In[25]:
+
+
+sqft_test= [sq_[0] for sq_ in sqft_test]
+
+
+# In[26]:
+
+
+test['total_sqft']= sqft_test
+
+
+# In[27]:
+
+
+sqft_test= clean_total_sqft(test['total_sqft'])
+
+
+# In[28]:
+
+
+for i in range(len(sqft_test)):
+    if type(sqft_test[i])== list:
+        sqft_test[i]= sqft_test[i][0]
+
+
+# In[29]:
+
+
+test['total_sqft']= sqft_test
+
+
+# In[30]:
+
+
+test['total_sqft']= test['total_sqft'].astype(float)
+
+
+# In[31]:
+
+
+test['total_sqft'].describe()
+
+
+# In[32]:
+
+
+#plot the distribution plot
+sns.distplot(train['total_sqft'], bins= 50)
+plt.title('Total Sqft Distribution Plot')
+plt.show()
+
+
+# In[33]:
+
+
+plt.scatter(train['total_sqft'], train['price'])
+plt.title('Total Sqft vs Price')
+plt.xlabel('Total Sqft')
+plt.ylabel('Price')
+plt.show()
+
+
+# In[34]:
+
+
+train_r_out= train[(train['total_sqft']<80000) & (train['price']<3500)]
+
+
+# In[35]:
+
+
+plt.scatter(train_r_out['total_sqft'], train_r_out['price'])
+
+
+# In[36]:
+
+
+train.shape, train_r_out.shape
+
+
+# In[37]:
+
+
+target_r_out= train_r_out['price']
+
+
+# In[38]:
+
+
+sns.distplot(np.log(test['total_sqft']+1), bins= 50)
+plt.title('Total Sqft Distribution Plot')
+plt.show()
+
+
+# In[39]:
+
+
+sns.distplot(np.log(train['total_sqft']+1), bins= 50)
+plt.title('Total Sqft Distribution Plot')
+plt.show()
+
+
+# In[40]:
+
+
+plt.scatter(np.log(train['total_sqft']+1), train['price'])
+
+
+# train_new= train.copy()
+# train_new['total_sqft']= np.log(train['total_sqft']+1)
+
+# test_new= test.copy()
+# test_new['total_sqft']= np.log(test['total_sqft']+1)
+
+# In[41]:
+
+
+train.head()
+
+
+# In[42]:
+
+
+test.head()
+
+
+# In[43]:
+
+
+train.isnull().sum()
+
+
+# In[44]:
+
+
+test.isnull().sum()
+
+
+# In[45]:
+
+
+train['size'].describe()
+
+
+# In[46]:
+
+
+train['location'].describe()
+
+
+# In[47]:
+
+
+train['balcony'].unique()
+
+
+# In[48]:
+
+
+train['bath'].unique()
+
+
+# In[49]:
+
+
+test.shape
+
+
+# In[50]:
+
+
+target= train['price']
+
+
+# In[51]:
+
+
+train['society'].fillna('Not Known', inplace= True)
+test['society'].fillna('Not Known', inplace= True)
+
+
+# train_new.drop(['society', 'price'], axis= 1, inplace= True)
+# test_new.drop(['society', 'price'], axis= 1, inplace= True)
+
+# In[52]:
+
+
+train['location'].fillna(train['location'].mode()[0], inplace= True)
+test['location'].fillna(test['location'].mode()[0], inplace= True)
+
+
+# In[53]:
+
+
+train['size'].fillna(train['size'].mode()[0], inplace= True)
+test['size'].fillna(test['size'].mode()[0], inplace= True)
+
+
+# In[54]:
+
+
+#train['bath'].fillna(0, inplace= True)
+#test['bath'].fillna(0, inplace= True)
+
+#train['balcony'].fillna(0, inplace= True)
+#test['balcony'].fillna(0, inplace= True)
+
+train['bath'].fillna(train['bath'].mode()[0], inplace= True)
+test['bath'].fillna(train['bath'].mode()[0], inplace= True)
+
+train['balcony'].fillna(0, inplace= True)
+test['balcony'].fillna(0, inplace= True)
+
+
+# In[55]:
+
+
+train.dtypes
+
+
+# In[56]:
+
+
+train['bath']= train['bath'].astype(int)
+test['bath']= test['bath'].astype(int)
+
+train['balcony']= train['balcony'].astype(int)
+test['balcony']= test['balcony'].astype(int)
+
+
+# In[57]:
+
+
+cat_var= [item for item in train.columns if train[item].dtypes=='O']
+
+
+# In[58]:
+
+
+cat_var
+
+
+# In[59]:
+
+
+train.head()
+
+
+# In[60]:
+
+
+test.head()
+
+
+# In[61]:
+
+
+train_new= train.copy()
+test_new= test.copy()
+
+
+# In[62]:
+
+
+train['availability']= np.where(train['availability']=='Ready To Move', 1, 0)
+test['availability']= np.where(test['availability']=='Ready To Move', 1, 0)
+
+
+# In[64]:
+
+
+train['size']= [s[0] for s in train['size']]
+
+
+# In[67]:
+
+
+train['size']= train['size'].astype(int)
+
+
+# In[69]:
+
+
+test['size']= [s[0] for s in test['size']]
+test['size']= test['size'].astype(int)
+
+
+# In[84]:
+
+
+test.drop(['price'], axis= 1, inplace= True)
+
+
+# In[97]:
+
+
+train.drop(['price'], axis= 1, inplace= True)
+
+
+# In[85]:
+
+
+#approach 1 label encoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
+
+
+# In[86]:
+
+
+def label_encoder(train_1, test_1, cat_var= cat_var):
+    train_2= train_1.copy()
+    test_2= test_1.copy()
+    le= LabelEncoder()
+    for var in cat_var:
+        train_2[var]= le.fit_transform(train_2[var].astype(str))
+        test_2[var]= le.fit_transform(test_2[var].astype(str))
+        
+    return train_2, test_2
+
+
+# In[87]:
+
+
+def dummy_creator(train_3, test_3):
+    train_4= train_3.copy()
+    test_4= test_3.copy()
+    train_4= pd.get_dummies(train_4, drop_first= True)
+    test_4= pd.get_dummies(test_4, drop_first= True)
+    
+    return train_4, test_4
+
+
+# In[88]:
+
+
+def ml_modeling(model, train, target, test):#, label_encoder= True, dummy_creator= False):
+    #if label_encoder:
+    #    train, test= label_encoder(train, test)
+        
+    #if dummy_creator:
+    #    train, test= dummy_creator(train, test)
+        
+    from sklearn.model_selection import train_test_split
+    X_train, X_test, y_train, y_test= train_test_split(train, target, random_state= 0)
+    
+    model.fit(X_train, y_train)
+    
+    y_pred= model.predict(X_test)
+    
+    #print accuracies
+    from sklearn.metrics import r2_score, mean_squared_error, mean_squared_log_error
+    r_squared= r2_score(y_test, y_pred)
+    mse= mean_squared_error(y_test, y_pred)
+    rmse= np.sqrt(mse)
+    msle= mean_squared_log_error(y_test, y_pred)
+    rmsle= np.sqrt(msle)
+    print('The R-Squared value: {:.4f}' .format(r_squared))
+    print('Mean Squared Error: {:.4f}' .format(mse))
+    print('Root Mean Squared Error: {:.4f}' .format(rmse))
+    print('Root Mean Squared Log Error: {:.4f}' .format(rmsle))
+    
+    return model, model.predict(test) 
+
+
+# In[89]:
+
+
+from sklearn.linear_model import LinearRegression, Lasso, Ridge
+
+
+# In[90]:
+
+
+reg_lin= LinearRegression()
+
+
+# In[98]:
+
+
+train_le, test_le= label_encoder(train, test)
+
+
+# In[99]:
+
+
+model_lin_le, pred_1= ml_modeling(reg_lin, train_le, target, test_le)
+
+
+# In[100]:
+
+
+pred_1
+
+
+# In[76]:
+
+
+samp= pd.read_excel('House_-Sample_Submission.xlsx')
+
+
+# In[79]:
+
+
+samp.shape, test.shape
+
+
+# In[80]:
+
+
+samp['price']= pred_1
+
+
+# In[81]:
+
+
+samp.to_excel('sample_4.xlsx', index= False)
+
+
+# In[101]:
+
+
+from sklearn.ensemble import RandomForestRegressor
+
+
+# In[102]:
+
+
+reg_rf= RandomForestRegressor(random_state= 2018)
+
+
+# In[103]:
+
+
+model_le_rf, pred_2= ml_modeling(reg_rf, train_le, target, test_le)
+
+
+# In[92]:
+
+
+samp_5= samp
+
+
+# In[93]:
+
+
+samp_5['price']= pred_2
+
+
+# In[94]:
+
+
+samp_5.to_excel('sample_5.xlsx', index= False)
+
+
+# In[104]:
+
+
+import catboost as cb
+
+
+# In[108]:
+
+
+train['total_rooms']= train['size']+train['bath']
+test['total_rooms']= test['size']+test['bath']
+
+
+# In[109]:
+
+
+cat_feat_index= np.where(train.dtypes!= np.float)[0]
+
+
+# In[110]:
+
+
+cat_feat_index
+
+
+# In[111]:
+
+
+train.head()
+
+
+# In[112]:
+
+
+def run_CB(train, target, test, cat_feat_index= cat_feat_index):
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import r2_score, mean_squared_error, mean_squared_log_error
+    X_train, X_test, y_train, y_test= train_test_split(train, target, random_state= 0)
+    param_cb= {}
+    param_cb['iterations']= 5000
+    param_cb['learning_rate']= 0.01
+    #param_cb['max_depth']= 3
+    #param_cb['random_seed']= 2018
+    
+    model= cb.CatBoostRegressor(**param_cb)
+    
+    model.fit(X_train, y_train, cat_feat_index, eval_set= (X_test, y_test), early_stopping_rounds= 50, verbose= 100)
+    
+    y_pred= model.predict(X_test)
+    
+    r_squared= r2_score(y_test, y_pred)
+    mse= mean_squared_error(y_test, y_pred)
+    rmse= np.sqrt(mse)
+    msle= mean_squared_log_error(y_test, y_pred)
+    rmsle= np.sqrt(msle)
+    print('The R-Squared value: {:.4f}' .format(r_squared))
+    print('Mean Squared Error: {:.4f}' .format(mse))
+    print('Root Mean Squared Error: {:.4f}' .format(rmse))
+    print('Root Mean Squared Log Error: {:.4f}' .format(rmsle))
+    
+    return model, model.predict(test)
+
+
+# In[113]:
+
+
+model_le_cb, pred_3= run_CB(train, target, test)
+
+
+# In[78]:
+
+
+samp_7= samp
+
+
+# In[79]:
+
+
+samp_7['price']= pred_3
+
+
+# In[80]:
+
+
+samp_7.to_excel('sample_7.xlsx', index= False)
+
+
+# train_new= train.copy()
+# test_new= test.copy()
+
+# In[114]:
+
+
+train['total_sqft']= np.log(train['total_sqft']+1)
+test['total_sqft']= np.log(test['total_sqft']+1)
+
+
+# In[115]:
+
+
+model_cb_1, pred_4= run_CB(train, target, test)
+
+
+# In[85]:
+
+
+samp_8= samp
+
+
+# In[86]:
+
+
+samp_8['price']= pred_4
+
+
+# In[87]:
+
+
+samp_8.to_csv('sample_8.xlsx', index= False)
+
+
+# In[88]:
+
+
+samp_8.to_excel('sample_8.xlsx', index= False)
+
+
+# In[118]:
+
+
+#train['price']= np.log(train['price']+1)
+#test_new['price']= np.log(test_new['price']+1)
+target_log= np.log(target+1)
+
+
+# In[120]:
+
+
+train.head()
+
+
+# In[121]:
+
+
+target_log.head()
+
+
+# In[122]:
+
+
+model_cb_2, pred_5= run_CB(train, target_log, test)
+
+
+# In[94]:
+
+
+pred_6= np.exp(pred_5)
+
+
+# In[95]:
+
+
+pred_6
+
+
+# In[96]:
+
+
+samp_9= samp
+
+
+# In[97]:
+
+
+samp_9['price']= pred_6
+
+
+# In[98]:
+
+
+samp_9.to_excel('sample_9.xlsx', index= False)
+
+
+# In[123]:
+
+
+def run_CB(train, target, test, cat_feat_index= cat_feat_index):
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import r2_score, mean_squared_error, mean_squared_log_error
+    X_train, X_test, y_train, y_test= train_test_split(train, target, random_state= 0)
+    
+    r_squared_1= []
+    mse_1= []
+    rmse_1= []
+    rmsle_1= []
+    y_test_1= []
+    #msle_1= []
+    for i in range(5):
+        param_cb= {}
+        param_cb['iterations']= 10000
+        param_cb['learning_rate']= 0.01
+        #param_cb['max_depth']= 3
+        param_cb['random_seed']= i
+
+        model= cb.CatBoostRegressor(**param_cb)
+
+        model.fit(X_train, y_train, cat_feat_index, eval_set= (X_test, y_test), early_stopping_rounds= 50, verbose= 1000)
+
+        y_pred= model.predict(X_test)
+        #y_pred_1.append(y_pred)
+        y_test_= model.predict(test)
+        y_test_1.append(y_test_)
+        
+        r_squared= r2_score(y_test, y_pred)
+        mse= mean_squared_error(y_test, y_pred)
+        rmse= np.sqrt(mse)
+        msle= mean_squared_log_error(y_test, y_pred)
+        rmsle= np.sqrt(msle)
+        
+        r_squared_1.append(r_squared)
+        mse_1.append(mse)
+        rmse_1.append(rmse)
+        rmsle_1.append(rmsle)
+        #msle_1.append(msle)
+    print('The R-Squared value: {:.4f}' .format(np.mean(r_squared_1)))
+    print('Mean Squared Error: {:.4f}' .format(np.mean(mse_1)))
+    print('Root Mean Squared Error: {:.4f}' .format(np.mean(rmse_1)))
+    print('Root Mean Squared Log Error: {:.4f}' .format(np.mean(rmsle_1)))
+
+    return model, np.mean(y_test_1, axis= 0)
+
+
+# In[124]:
+
+
+model_cb_3, pred_7= run_CB(train, target_log, test)
+
+
+# In[112]:
+
+
+pred_8= np.exp(pred_7)
+
+
+# In[113]:
+
+
+pred_8
+
+
+# In[114]:
+
+
+samp_10= samp
+
+
+# In[115]:
+
+
+samp_10['price']= pred_8
+
+
+# In[116]:
+
+
+samp_10.to_excel('sample_10.xlsx', index= False)
+
+
+# In[125]:
+
+
+def run_CB(train, target, test, cat_feat_index= cat_feat_index):
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import r2_score, mean_squared_error, mean_squared_log_error
+    X_train, X_test, y_train, y_test= train_test_split(train, target, random_state= 0)
+    
+    r_squared_1= []
+    mse_1= []
+    rmse_1= []
+    rmsle_1= []
+    y_test_1= []
+    #msle_1= []
+    for i in range(5):
+        param_cb= {}
+        param_cb['iterations']= 10000
+        param_cb['learning_rate']= 0.1
+        #param_cb['max_depth']= 3
+        param_cb['random_seed']= i
+
+        model= cb.CatBoostRegressor(**param_cb)
+
+        model.fit(X_train, y_train, cat_feat_index, eval_set= (X_test, y_test), early_stopping_rounds= 50, verbose= 1000)
+
+        y_pred= model.predict(X_test)
+        #y_pred_1.append(y_pred)
+        y_test_= model.predict(test)
+        y_test_1.append(y_test_)
+        
+        r_squared= r2_score(y_test, y_pred)
+        mse= mean_squared_error(y_test, y_pred)
+        rmse= np.sqrt(mse)
+        msle= mean_squared_log_error(y_test, y_pred)
+        rmsle= np.sqrt(msle)
+        
+        r_squared_1.append(r_squared)
+        mse_1.append(mse)
+        rmse_1.append(rmse)
+        rmsle_1.append(rmsle)
+        #msle_1.append(msle)
+    print('The R-Squared value: {:.4f}' .format(np.mean(r_squared_1)))
+    print('Mean Squared Error: {:.4f}' .format(np.mean(mse_1)))
+    print('Root Mean Squared Error: {:.4f}' .format(np.mean(rmse_1)))
+    print('Root Mean Squared Log Error: {:.4f}' .format(np.mean(rmsle_1)))
+
+    return model, np.mean(y_test_1, axis= 0)
+
+
+# In[126]:
+
+
+model_cb_4, pred_9= run_CB(train, target_log, test)
+
+
+# In[119]:
+
+
+pred_10= np.exp(pred_9)
+
+
+# In[122]:
+
+
+pred_10= np.round(pred_10, 2)
+
+
+# In[123]:
+
+
+pred_10
+
+
+# In[124]:
+
+
+samp_11= samp
+
+
+# In[125]:
+
+
+samp_11['price']= pred_10
+
+
+# In[126]:
+
+
+samp_11.to_excel('sample_11.xlsx', index= False)
+
+
+# In[129]:
+
+
+from sklearn.model_selection import KFold
+
+
+# In[130]:
+
+
+def run_CB(train, target, test, cat_feat_index= cat_feat_index):
+    #from sklearn.model_selection import train_test_split
+    from sklearn.metrics import r2_score, mean_squared_error, mean_squared_log_error
+    #X_train, X_test, y_train, y_test= train_test_split(train, target, random_state= 0)
+    
+    r_squared_1= []
+    mse_1= []
+    rmse_1= []
+    rmsle_1= []
+    y_test_1= []
+    #msle_1= []
+    
+    kf = KFold(n_splits=5, shuffle= True, random_state= 0) 
+
+    for train_index, test_index in kf.split(train):
+        #print("Train:", train_index, "Validation:",test_index)
+        X_train, X_test = train.loc[train_index,:], train.loc[test_index,:] 
+        y_train, y_test = target[train_index], target[test_index]
+    
+        param_cb= {}
+        param_cb['iterations']= 10000
+        param_cb['learning_rate']= 0.1
+        #param_cb['max_depth']= 3
+        param_cb['random_seed']= i
+
+        model= cb.CatBoostRegressor(**param_cb)
+
+        model.fit(X_train, y_train, cat_feat_index, eval_set= (X_test, y_test), early_stopping_rounds= 50, verbose= 1000)
+
+        y_pred= model.predict(X_test)
+        #y_pred_1.append(y_pred)
+        y_test_= model.predict(test)
+        y_test_1.append(y_test_)
+        
+        r_squared= r2_score(y_test, y_pred)
+        mse= mean_squared_error(y_test, y_pred)
+        rmse= np.sqrt(mse)
+        msle= mean_squared_log_error(y_test, y_pred)
+        rmsle= np.sqrt(msle)
+        
+        r_squared_1.append(r_squared)
+        mse_1.append(mse)
+        rmse_1.append(rmse)
+        rmsle_1.append(rmsle)
+        #msle_1.append(msle)
+    print('The R-Squared value: {:.4f}' .format(np.mean(r_squared_1)))
+    print('Mean Squared Error: {:.4f}' .format(np.mean(mse_1)))
+    print('Root Mean Squared Error: {:.4f}' .format(np.mean(rmse_1)))
+    print('Root Mean Squared Log Error: {:.4f}' .format(np.mean(rmsle_1)))
+
+    return np.mean(y_test_1, axis= 0)
+
+
+# In[131]:
+
+
+pred_11= run_CB(train, target_log, test)
+
+
+# In[143]:
+
+
+pred_11
+
+
+# In[144]:
+
+
+pred_12= np.exp(pred_11)
+
+
+# In[146]:
+
+
+samp_12= samp
+
+
+# In[147]:
+
+
+samp_12['price']= pred_12
+
+
+# In[148]:
+
+
+samp_12.to_excel('sample_12.xlsx', index= False)
+
+
+# In[151]:
+
+
+def run_CB(train, target, test, cat_feat_index= cat_feat_index):
+    #from sklearn.model_selection import train_test_split
+    from sklearn.metrics import r2_score, mean_squared_error, mean_squared_log_error
+    #X_train, X_test, y_train, y_test= train_test_split(train, target, random_state= 0)
+    
+    r_squared_1= []
+    mse_1= []
+    rmse_1= []
+    rmsle_1= []
+    y_test_1= []
+    #msle_1= []
+    
+    kf = KFold(n_splits=10, shuffle= True, random_state= 5) 
+
+    for train_index, test_index in kf.split(train):
+        #print("Train:", train_index, "Validation:",test_index)
+        X_train, X_test = train.loc[train_index,:], train.loc[test_index,:] 
+        y_train, y_test = target[train_index], target[test_index]
+    
+        param_cb= {}
+        param_cb['iterations']= 10000
+        param_cb['learning_rate']= 0.1
+        #param_cb['max_depth']= 3
+        param_cb['random_seed']= i
+
+        model= cb.CatBoostRegressor(**param_cb)
+
+        model.fit(X_train, y_train, cat_feat_index, eval_set= (X_test, y_test), early_stopping_rounds= 50, verbose= 1000)
+
+        y_pred= model.predict(X_test)
+        #y_pred_1.append(y_pred)
+        y_test_= model.predict(test)
+        y_test_1.append(y_test_)
+        
+        r_squared= r2_score(y_test, y_pred)
+        mse= mean_squared_error(y_test, y_pred)
+        rmse= np.sqrt(mse)
+        msle= mean_squared_log_error(y_test, y_pred)
+        rmsle= np.sqrt(msle)
+        
+        r_squared_1.append(r_squared)
+        mse_1.append(mse)
+        rmse_1.append(rmse)
+        rmsle_1.append(rmsle)
+        #msle_1.append(msle)
+    print('The R-Squared value: {:.4f}' .format(np.mean(r_squared_1)))
+    print('Mean Squared Error: {:.4f}' .format(np.mean(mse_1)))
+    print('Root Mean Squared Error: {:.4f}' .format(np.mean(rmse_1)))
+    print('Root Mean Squared Log Error: {:.4f}' .format(np.mean(rmsle_1)))
+
+    return np.mean(y_test_1, axis= 0)
+
+
+# In[152]:
+
+
+pred_13= run_CB(train_new.drop(['price'], axis= 1), train_new['price'], test_new.drop(['price'], axis= 1))
+
+
+# In[153]:
+
+
+pred_14= np.exp(pred_13)
+
+
+# In[154]:
+
+
+samp_13= samp
+
+
+# In[155]:
+
+
+pred_14
+
+
+# In[156]:
+
+
+samp_13['price']= pred_14
+
+
+# In[158]:
+
+
+samp_13.to_excel('sample_13.xlsx', index= False)
+
+
+# In[159]:
+
+
+def run_CB(train, target, test, cat_feat_index= cat_feat_index):
+    #from sklearn.model_selection import train_test_split
+    from sklearn.metrics import r2_score, mean_squared_error, mean_squared_log_error
+    #X_train, X_test, y_train, y_test= train_test_split(train, target, random_state= 0)
+    
+    r_squared_1= []
+    mse_1= []
+    rmse_1= []
+    rmsle_1= []
+    y_test_1= []
+    #msle_1= []
+    
+    kf = KFold(n_splits=10, shuffle= True, random_state= 0) 
+
+    for train_index, test_index in kf.split(train):
+        #print("Train:", train_index, "Validation:",test_index)
+        X_train, X_test = train.loc[train_index,:], train.loc[test_index,:] 
+        y_train, y_test = target[train_index], target[test_index]
+    
+        param_cb= {}
+        param_cb['iterations']= 10000
+        param_cb['learning_rate']= 0.1
+        #param_cb['max_depth']= 3
+        #param_cb['random_seed']= i
+
+        model= cb.CatBoostRegressor(**param_cb)
+
+        model.fit(X_train, y_train, cat_feat_index, eval_set= (X_test, y_test), early_stopping_rounds= 50, verbose= 1000)
+
+        y_pred= model.predict(X_test)
+        #y_pred_1.append(y_pred)
+        y_test_= model.predict(test)
+        y_test_1.append(y_test_)
+        
+        r_squared= r2_score(y_test, y_pred)
+        mse= mean_squared_error(y_test, y_pred)
+        rmse= np.sqrt(mse)
+        msle= mean_squared_log_error(y_test, y_pred)
+        rmsle= np.sqrt(msle)
+        
+        r_squared_1.append(r_squared)
+        mse_1.append(mse)
+        rmse_1.append(rmse)
+        rmsle_1.append(rmsle)
+        #msle_1.append(msle)
+    print('The R-Squared value: {:.4f}' .format(np.mean(r_squared_1)))
+    print('Mean Squared Error: {:.4f}' .format(np.mean(mse_1)))
+    print('Root Mean Squared Error: {:.4f}' .format(np.mean(rmse_1)))
+    print('Root Mean Squared Log Error: {:.4f}' .format(np.mean(rmsle_1)))
+
+    return np.mean(y_test_1, axis= 0)
+
+
+# In[160]:
+
+
+pred_15= run_CB(train_new.drop(['price'], axis= 1), train_new['price'], test_new.drop(['price'], axis= 1))
+
+
+# In[161]:
+
+
+pred_16= np.exp(pred_15)
+
+
+# In[162]:
+
+
+samp_14= samp
+
+
+# In[163]:
+
+
+samp_14['price']= pred_16
+
+
+# In[164]:
+
+
+samp_14.to_excel('sample_14.xlsx', index= False)
+
